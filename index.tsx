@@ -3,10 +3,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro do Service Worker para PWA
+// Registro do Service Worker para PWA - Usando caminho relativo para funcionar em subpastas
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
       console.log('SW registrado com sucesso:', registration.scope);
     }).catch(err => {
       console.log('Falha ao registrar SW:', err);

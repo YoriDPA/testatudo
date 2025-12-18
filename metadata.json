@@ -1,5 +1,5 @@
 {
-  "name": "TeleFlix - Your Personal Telegram Cinema",
+  "name": "Copy of TeleFlix - Your Personal Telegram Cinema",
   "description": "A Netflix-inspired interface to organize and watch movies from your Telegram groups, powered by Gemini to automatically enrich movie metadata from simple titles.",
   "requestFramePermissions": []
 }

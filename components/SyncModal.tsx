@@ -14,7 +14,6 @@ const SyncModal: React.FC<SyncModalProps> = ({ onClose, onSync }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'paste' | 'guide'>('paste');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,7 +45,6 @@ const SyncModal: React.FC<SyncModalProps> = ({ onClose, onSync }) => {
     setIsProcessing(true);
     setError(null);
     try {
-      // Enviando para o Gemini processar
       const result = await enrichMovieData(text, linkMap);
       if (result && result.length > 0) {
         onSync(result);
@@ -69,51 +67,38 @@ const SyncModal: React.FC<SyncModalProps> = ({ onClose, onSync }) => {
       const content = e.target?.result as string;
       try {
         const json = JSON.parse(content);
-        let finalHandle = groupHandle.replace('@', '').trim();
-        
-        // Tenta achar o ID do chat ou nome do chat no JSON
         let chatId = String(json.id || '');
         const cleanChatId = chatId.replace('-100', '').replace('-', '');
-
         const linkMap: Record<string, string> = {};
-        
-        // Processa as últimas 500 mensagens para não travar
         const rawMessages = (json.messages || []).filter((m: any) => m.type === 'message');
-        
         const processedTexts = rawMessages
           .slice(-500)
-          .map((m: any, index: number) => {
-            // Pega o texto da mensagem (pode ser string ou array de objetos)
+          .map((m: any) => {
             let text = "";
             if (Array.isArray(m.text)) {
               text = m.text.map((t: any) => typeof t === 'string' ? t : t.text).join('');
             } else {
               text = m.text || "";
             }
-
-            // Se tiver arquivo anexado, adiciona ao texto para a IA saber que é um filme
             const fileName = m.file ? ` [Arquivo: ${m.file}]` : "";
             const refId = `ID_${m.id}`;
-            
-            // Cria o link correto
+            const finalHandle = groupHandle.replace('@', '').trim();
             if (finalHandle) {
               linkMap[refId] = `https://t.me/${finalHandle}/${m.id}`;
             } else {
               linkMap[refId] = `https://t.me/c/${cleanChatId}/${m.id}`;
             }
-
             return `[${refId}] ${text}${fileName}`;
           })
-          .filter((t: string) => t.length > 10) // Ignora mensagens vazias ou curtas demais
+          .filter((t: string) => t.length > 10)
           .join('\n');
 
         if (processedTexts) {
           handleProcess(processedTexts, linkMap);
         } else {
-          setError("O arquivo JSON foi lido, mas não encontramos mensagens de texto ou arquivos.");
+          setError("O arquivo JSON foi lido, mas não encontramos mensagens válidas.");
         }
       } catch (err) {
-        // Se não for JSON, tenta processar como texto puro
         handleProcess(content.substring(0, 30000));
       }
     };
@@ -134,8 +119,11 @@ const SyncModal: React.FC<SyncModalProps> = ({ onClose, onSync }) => {
         <div className="p-10 pb-4">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-4xl font-black tracking-tighter text-white">YoriFlix Sync</h3>
-              <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">Tecnologia Gemini + Telegram</p>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-green-600/20 text-green-500 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Plano Free Ativo</span>
+                <h3 className="text-4xl font-black tracking-tighter text-white">YoriFlix Sync</h3>
+              </div>
+              <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.2em]">Importação sem custos</p>
             </div>
             <button onClick={onClose} className="bg-zinc-800 hover:bg-red-600 p-2 rounded-full transition-all text-white">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

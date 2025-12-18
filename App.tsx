@@ -5,6 +5,7 @@ import Hero from './components/Hero';
 import MovieRow from './components/MovieRow';
 import MovieDetail from './components/MovieDetail';
 import SyncModal from './components/SyncModal';
+import DeployModal from './components/DeployModal';
 import { Movie, Category } from './types';
 
 const INITIAL_MOVIES: Movie[] = [];
@@ -16,11 +17,35 @@ const App: React.FC = () => {
   });
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     localStorage.setItem('teleflix-movies', JSON.stringify(movies));
   }, [movies]);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const featuredMovie = useMemo(() => {
     return movies.length > 0 ? movies[Math.floor(Math.random() * movies.length)] : null;
@@ -58,7 +83,10 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-black text-white relative selection:bg-red-600/30">
       <Navbar 
         onSyncClick={() => setIsSyncModalOpen(true)} 
+        onDeployClick={() => setIsDeployModalOpen(true)}
         onSearch={setSearchQuery}
+        showInstallButton={!!deferredPrompt}
+        onInstallClick={handleInstallClick}
       />
       
       <main className="pb-20">
@@ -66,7 +94,6 @@ const App: React.FC = () => {
           <Hero movie={featuredMovie} onPlay={() => setSelectedMovie(featuredMovie)} />
         ) : !searchQuery && movies.length === 0 ? (
           <div className="h-screen flex flex-col items-center justify-center text-center px-4 relative overflow-hidden">
-            {/* Background elements */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-red-600/10 rounded-full blur-[120px] pointer-events-none"></div>
             
             <div className="relative z-10 animate-in fade-in zoom-in duration-1000">
@@ -77,7 +104,7 @@ const App: React.FC = () => {
                </h2>
                
                <p className="text-zinc-400 max-w-xl mx-auto text-lg md:text-xl mb-12 leading-relaxed font-medium">
-                 Vi que você já tem o <span className="text-white font-bold italic">result.json</span> aberto! Arraste-o para cá e transforme seu grupo do Telegram em um catálogo profissional.
+                 O cinema particular que você sempre quis. Importe seu grupo e comece a maratona.
                </p>
                
                <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -88,8 +115,12 @@ const App: React.FC = () => {
                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                    IMPORTAR AGORA
                  </button>
-                 <button className="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 px-10 py-5 rounded-2xl font-bold text-xl transition-all">
-                   COMO FUNCIONA?
+                 <button 
+                  onClick={() => setIsDeployModalOpen(true)}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-10 py-5 rounded-2xl font-bold text-xl transition-all flex items-center justify-center gap-3 border border-white/5"
+                 >
+                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 3.38-2 3.38s2.25-.5 3.38-2c.75-.18 1.5-.3 2.25-.3.75 0 1.5.12 2.25.3 1.12 1.5 3.38 2 3.38 2s-.5-2.12-2-3.38c1.69-1.26 2-3.62 2-3.62s-.5 1.5-1.5 1.5-1.5-1.5-1.5-1.5-1.69 2.36-2 3.62c-.75-.18-1.5-.3-2.25-.3-.75 0-1.5.12-2.25.3Z"/><path d="M12 15l-3-3m3 3l3-3m-3 3V9"/><path d="M15 15l3-3m-3 3l-3-3m3 3V9"/></svg>
+                   USAR NO CELULAR
                  </button>
                </div>
             </div>
@@ -119,6 +150,12 @@ const App: React.FC = () => {
         <SyncModal 
           onClose={() => setIsSyncModalOpen(false)} 
           onSync={handleSync}
+        />
+      )}
+
+      {isDeployModalOpen && (
+        <DeployModal 
+          onClose={() => setIsDeployModalOpen(false)} 
         />
       )}
     </div>
